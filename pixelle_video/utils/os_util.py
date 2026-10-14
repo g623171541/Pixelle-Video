@@ -23,6 +23,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple, Literal
 
+from pixelle_video.utils.workflow_util import is_hidden_workflow_source
+
 
 def get_pixelle_video_root_path() -> str:
     """
@@ -405,6 +407,9 @@ def list_resource_files(
         # Returns: ["custom.html", "default.html", "modern.html"]
         # (merged from templates/1080x1920/ and data/templates/1080x1920/)
     """
+    if resource_type == "workflows" and is_hidden_workflow_source(subdir):
+        return []
+
     files = {}  # Use dict to track source priority: {filename: path}
     
     # Build directory paths
@@ -445,7 +450,7 @@ def list_resource_dirs(
         # Returns: ["1080x1080", "1080x1920", "1920x1080"]
         
         >>> list_resource_dirs("workflows")
-        # Returns: ["runninghub", "selfhost"]
+        # Returns: ["selfhost"]  (hidden sources such as runninghub are excluded)
     """
     dirs = set()
     
@@ -464,6 +469,9 @@ def list_resource_dirs(
         for item in custom_dir.iterdir():
             if item.is_dir():
                 dirs.add(item.name)
+    
+    if resource_type == "workflows":
+        dirs = {d for d in dirs if not is_hidden_workflow_source(d)}
     
     return sorted(dirs)
 

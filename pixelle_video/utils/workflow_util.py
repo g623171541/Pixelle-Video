@@ -27,10 +27,17 @@ from typing import Literal
 
 WorkflowSource = Literal['runninghub', 'selfhost']
 
+# Workflow sources that are not scanned or offered anywhere (only local ComfyUI is used)
+HIDDEN_WORKFLOW_SOURCES = frozenset({'runninghub'})
+
+
+def is_hidden_workflow_source(source: str) -> bool:
+    return source in HIDDEN_WORKFLOW_SOURCES
+
 
 def resolve_workflow_path(
     service_name: str,
-    source: WorkflowSource = 'runninghub'
+    source: WorkflowSource = 'selfhost'
 ) -> str:
     """
     Resolve workflow path using standardized naming convention
@@ -39,7 +46,7 @@ def resolve_workflow_path(
     
     Args:
         service_name: Service identifier (e.g., "analyse_image", "image", "video", "tts")
-        source: Workflow source - 'runninghub' (default) or 'selfhost'
+        source: Workflow source - 'selfhost' (default) or 'runninghub'
     
     Returns:
         Workflow path in format: "{source}/{service_name}.json"
@@ -51,8 +58,8 @@ def resolve_workflow_path(
         >>> resolve_workflow_path("analyse_image", "selfhost")
         'selfhost/analyse_image.json'
         
-        >>> resolve_workflow_path("image")  # defaults to runninghub
-        'runninghub/image.json'
+        >>> resolve_workflow_path("image")  # defaults to selfhost
+        'selfhost/image.json'
     """
     return f"{source}/{service_name}.json"
 
@@ -62,6 +69,6 @@ def get_default_source() -> WorkflowSource:
     Get default workflow source
     
     Returns:
-        'runninghub' - Cloud-first approach, better for beginners
+        'selfhost' - Local ComfyUI
     """
-    return 'runninghub'
+    return 'selfhost'

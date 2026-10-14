@@ -194,12 +194,10 @@ class AssetBasedPipelineUI(PipelineUI):
                 st.markdown(tr("asset_based.source.how"))
             
             source_options = {
-                "runninghub": tr("asset_based.source.runninghub"),
                 "selfhost": tr("asset_based.source.selfhost"),
                 "api": "API 调用" if get_language() == "zh_CN" else "API call",
             }
             
-            # Check if RunningHub API key is configured
             comfyui_config = config_manager.get_comfyui_config()
             api_asset_analysis = getattr(pixelle_video, "api_asset_analysis", None)
             api_vlm_models = (
@@ -207,7 +205,6 @@ class AssetBasedPipelineUI(PipelineUI):
                 if api_asset_analysis is not None
                 else []
             )
-            has_runninghub = bool(comfyui_config.get("runninghub_api_key"))
             has_selfhost = bool(comfyui_config.get("comfyui_url"))
             has_api_analysis = bool(api_vlm_models)
 
@@ -227,21 +224,17 @@ class AssetBasedPipelineUI(PipelineUI):
                     return False
                 return image_available or video_available
             
-            # Prefer API VLM when configured, so API media workflows do not depend on RunningHub.
+            # Prefer API VLM when configured.
             source_keys = []
-            if analysis_source_available("runninghub"):
-                source_keys.append("runninghub")
             if analysis_source_available("selfhost"):
                 source_keys.append("selfhost")
             if has_api_analysis:
                 source_keys.append("api")
             if not source_keys:
-                source_keys = ["runninghub"]
+                source_keys = ["selfhost"]
 
             if has_api_analysis and "api" in source_keys:
                 default_source = "api"
-            elif has_runninghub and "runninghub" in source_keys:
-                default_source = "runninghub"
             elif "selfhost" in source_keys:
                 default_source = "selfhost"
             else:
@@ -331,15 +324,10 @@ class AssetBasedPipelineUI(PipelineUI):
                     )
                 else:
                     st.info(
-                        "使用上方选择的 API VLM 模型分析上传素材，不依赖 RunningHub/ComfyUI。"
+                        "使用上方选择的 API VLM 模型分析上传素材，不依赖 ComfyUI。"
                         if get_language() == "zh_CN"
-                        else "Use the selected API VLM model to analyze uploaded assets without RunningHub/ComfyUI."
+                        else "Use the selected API VLM model to analyze uploaded assets without ComfyUI."
                     )
-            elif source == "runninghub":
-                if not has_runninghub:
-                    st.warning(tr("asset_based.source.runninghub_not_configured"))
-                else:
-                    st.info(tr("asset_based.source.runninghub_hint"))
             else:
                 if not has_selfhost:
                     st.warning(tr("asset_based.source.selfhost_not_configured"))
@@ -578,7 +566,7 @@ class AssetBasedPipelineUI(PipelineUI):
                         video_title=video_params.get("video_title", ""),
                         intent=video_params.get("intent"),
                         duration=video_params.get("duration", 30),
-                        source=video_params.get("source", "runninghub"),
+                        source=video_params.get("source", "selfhost"),
                         analysis_image_workflow=video_params.get("analysis_image_workflow"),
                         analysis_video_workflow=video_params.get("analysis_video_workflow"),
                         analysis_vlm_model=video_params.get("analysis_vlm_model"),

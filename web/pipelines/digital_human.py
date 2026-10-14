@@ -137,20 +137,17 @@ class DigitalHumanPipelineUI(PipelineUI):
                 st.markdown(tr("asset_based.source.how"))
             
             source_options = {
-                "runninghub": tr("asset_based.source.runninghub"),
                 "selfhost": tr("asset_based.source.selfhost"),
                 "api": workflow_source_label("api"),
             }
             
-            # Check if RunningHub API key is configured
             comfyui_config = config_manager.get_comfyui_config()
-            has_runninghub = bool(comfyui_config.get("runninghub_api_key"))
             has_selfhost = bool(comfyui_config.get("comfyui_url"))
             
             workflow_config = {
-                "first_workflow_path": "workflows/runninghub/digital_image.json",
-                "second_workflow_path": "workflows/runninghub/digital_combination.json",
-                "third_workflow_path": "workflows/runninghub/digital_customize.json",
+                "first_workflow_path": "workflows/selfhost/digital_image.json",
+                "second_workflow_path": "workflows/selfhost/digital_combination.json",
+                "third_workflow_path": "workflows/selfhost/digital_customize.json",
             }
 
             def digital_image_workflows(source_name: str) -> list[dict]:
@@ -181,8 +178,6 @@ class DigitalHumanPipelineUI(PipelineUI):
 
             api_image_workflows = list_api_media_workflows(pixelle_video, "image")
             image_source_options = []
-            if digital_image_workflows("runninghub"):
-                image_source_options.append("runninghub")
             if digital_image_workflows("selfhost"):
                 image_source_options.append("selfhost")
             if api_image_workflows:
@@ -201,10 +196,8 @@ class DigitalHumanPipelineUI(PipelineUI):
             )
 
             image_workflows = []
-            if image_service_source in {"runninghub", "selfhost"}:
-                if image_service_source == "runninghub" and not has_runninghub:
-                    st.warning(tr("asset_based.source.runninghub_not_configured"))
-                if image_service_source == "selfhost" and not has_selfhost:
+            if image_service_source == "selfhost":
+                if not has_selfhost:
                     st.warning(tr("asset_based.source.selfhost_not_configured"))
 
                 image_workflows = digital_image_workflows(image_service_source)
@@ -245,8 +238,6 @@ class DigitalHumanPipelineUI(PipelineUI):
                 verified_only=True,
             )
             video_source_options = []
-            if digital_video_workflows("runninghub"):
-                video_source_options.append("runninghub")
             if digital_video_workflows("selfhost"):
                 video_source_options.append("selfhost")
             if api_video_workflows:
@@ -264,10 +255,8 @@ class DigitalHumanPipelineUI(PipelineUI):
             )
 
             video_workflows = []
-            if video_service_source in {"runninghub", "selfhost"}:
-                if video_service_source == "runninghub" and not has_runninghub:
-                    st.warning(tr("asset_based.source.runninghub_not_configured"))
-                if video_service_source == "selfhost" and not has_selfhost:
+            if video_service_source == "selfhost":
+                if not has_selfhost:
                     st.warning(tr("asset_based.source.selfhost_not_configured"))
 
                 video_workflows = digital_video_workflows(video_service_source)

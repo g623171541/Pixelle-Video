@@ -1,0 +1,236 @@
+{
+  "1": {
+    "inputs": {
+      "unet_name": "Wan2.2-T2V-A14B-HighNoise-Q5_K_M.gguf"
+    },
+    "class_type": "UnetLoaderGGUF",
+    "_meta": {
+      "title": "High Noise"
+    }
+  },
+  "2": {
+    "inputs": {
+      "unet_name": "Wan2.2-T2V-A14B-LowNoise-Q5_K_M.gguf"
+    },
+    "class_type": "UnetLoaderGGUF",
+    "_meta": {
+      "title": "Low Noise"
+    }
+  },
+  "15": {
+    "inputs": {
+      "lora_name": "wan2.2_t2v_A14b_high_noise_lora_rank64_lightx2v_4step_1217.safetensors",
+      "strength_model": 1,
+      "model": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "High Noise 4-step LoRA"
+    }
+  },
+  "16": {
+    "inputs": {
+      "lora_name": "wan2.2_t2v_A14b_low_noise_lora_rank64_lightx2v_4step_1217.safetensors",
+      "strength_model": 1,
+      "model": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "Low Noise 4-step LoRA"
+    }
+  },
+  "3": {
+    "inputs": {
+      "shift": 5,
+      "model": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingSD3",
+    "_meta": {
+      "title": "High Noise shift"
+    }
+  },
+  "4": {
+    "inputs": {
+      "shift": 5,
+      "model": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingSD3",
+    "_meta": {
+      "title": "Low Noise shift"
+    }
+  },
+  "5": {
+    "inputs": {
+      "clip_name": "umt5_xxl_fp16.safetensors",
+      "type": "wan",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": "成年亚洲女性坐在明亮窗边的室内角落，身穿浅香槟银灰色真丝吊带连衣裙，深棕色中长微卷发，清晨自然阳光从右侧侧逆进入，微风从窗外吹入，轻柔拂动她的发丝和裙摆，裙面丝绸随微风泛起细腻光泽与流动褶皱，她缓慢抬眼看向镜头，眼神温柔清澈，轻轻微笑，嘴角自然上扬，缓慢眨眼一次，呼吸轻微带动肩颈起伏，窗外绿色植物在背景中轻轻摇曳，光斑在墙面缓慢移动闪烁，画面中有细微尘埃在光束中漂浮，镜头从半身中景以极缓慢速度向前推近，焦点始终锁定在人物眼睛上，浅景深，焦外奶油化虚化，韩系清透人像风格，日系柔光胶片感，低饱和高明度，细腻肤色，柔和对比，画面稳定流畅，无抖动，电影级质感，高细节。",
+      "clip": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "$prompt.text!"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": "快速运动，动作突变，肢体扭曲，多余手指，手指粘连，面部变形，眼睛歪斜，瞳孔异常，过度磨皮，塑料皮肤，画面抖动，镜头甩动，模糊，低分辨率，噪点，闪烁，变形，水印，文字，logo，边框，过曝死白，多个人物，背景人物。",
+      "clip": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "$negative_prompt.text"
+    }
+  },
+  "8": {
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "9": {
+    "inputs": {
+      "width": 832,
+      "height": 480,
+      "length": 81,
+      "batch_size": 1
+    },
+    "class_type": "EmptyHunyuanLatentVideo",
+    "_meta": {
+      "title": "$width.width, $height.height"
+    }
+  },
+  "10": {
+    "inputs": {
+      "add_noise": "enable",
+      "noise_seed": 888,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 0,
+      "end_at_step": 2,
+      "return_with_leftover_noise": "enable",
+      "model": [
+        "3",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "KSamplerAdvanced",
+    "_meta": {
+      "title": "$seed.noise_seed"
+    }
+  },
+  "11": {
+    "inputs": {
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "start_at_step": 2,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable",
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "KSamplerAdvanced",
+    "_meta": {
+      "title": "Low Noise 2-end"
+    }
+  },
+  "12": {
+    "inputs": {
+      "samples": [
+        "11",
+        0
+      ],
+      "vae": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "13": {
+    "inputs": {
+      "frame_rate": 16,
+      "loop_count": 0,
+      "filename_prefix": "video/wan22_t2v",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 19,
+      "save_metadata": true,
+      "trim_to_audio": false,
+      "pingpong": false,
+      "save_output": true,
+      "images": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "VHS_VideoCombine",
+    "_meta": {
+      "title": "Video Combine"
+    }
+  }
+}

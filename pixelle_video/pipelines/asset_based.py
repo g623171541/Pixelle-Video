@@ -90,7 +90,7 @@ class AssetBasedPipeline(LinearVideoPipeline):
         video_title: str = "",
         intent: Optional[str] = None,
         duration: int = 30,
-        source: str = "runninghub",
+        source: str = "selfhost",
         bgm_path: Optional[str] = None,
         bgm_volume: float = 0.2,
         bgm_mode: str = "loop",
@@ -223,7 +223,7 @@ class AssetBasedPipeline(LinearVideoPipeline):
             asset_type = self._get_asset_type(asset_path_obj)
             
             if asset_type == "image":
-                analysis_source = context.request.get("source", "runninghub")
+                analysis_source = context.request.get("source", "selfhost")
                 if analysis_source == "api":
                     description = await self.core.api_asset_analysis.analyze_image(
                         asset_path,
@@ -247,7 +247,7 @@ class AssetBasedPipeline(LinearVideoPipeline):
                 logger.info(f"✅ Image analyzed: {description[:50]}...")
             
             elif asset_type == "video":
-                analysis_source = context.request.get("source", "runninghub")
+                analysis_source = context.request.get("source", "selfhost")
                 try:
                     if analysis_source == "api":
                         description = await self.core.api_asset_analysis.analyze_video(
@@ -917,7 +917,7 @@ class AssetBasedPipeline(LinearVideoPipeline):
                 "config": {
                     "llm_model": self.core.config.get("llm", {}).get("model", "unknown"),
                     "llm_base_url": self.core.config.get("llm", {}).get("base_url", "unknown"),
-                    "source": ctx.request.get("source", "runninghub"),
+                    "source": ctx.request.get("source", "selfhost"),
                 }
             }
             

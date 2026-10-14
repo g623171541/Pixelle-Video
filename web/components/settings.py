@@ -242,53 +242,6 @@ def render_advanced_settings():
                             st.error(tr("status.connection_failed"))
                     except Exception as e:
                         st.error(f"{tr('status.connection_failed')}: {str(e)}")
-                
-                st.markdown("---")
-                
-                # RunningHub cloud configuration
-                st.markdown(f"**{tr('settings.comfyui.cloud_title')}**")
-                runninghub_api_key = st.text_input(
-                    tr("settings.comfyui.runninghub_api_key"),
-                    value=comfyui_config.get("runninghub_api_key", ""),
-                    type="password",
-                    help=tr("settings.comfyui.runninghub_api_key_help"),
-                    key="runninghub_api_key_input"
-                )
-                st.caption(
-                    f"{tr('settings.comfyui.runninghub_hint')} "
-                    f"[{tr('settings.comfyui.runninghub_get_api_key')}]"
-                    f"(https://www.runninghub{'.cn' if get_language() == 'zh_CN' else '.ai'}/?inviteCode=bozpdlbj)"
-                )
-                
-                # RunningHub concurrent limit and instance type (in one row)
-                limit_col, instance_col = st.columns(2)
-                with limit_col:
-                    runninghub_concurrent_limit = st.number_input(
-                        tr("settings.comfyui.runninghub_concurrent_limit"),
-                        min_value=1,
-                        max_value=10,
-                        value=comfyui_config.get("runninghub_concurrent_limit", 1),
-                        help=tr("settings.comfyui.runninghub_concurrent_limit_help"),
-                        key="runninghub_concurrent_limit_input"
-                    )
-                with instance_col:
-                    # Check if instance type is "plus" (48G VRAM enabled)
-                    current_instance_type = comfyui_config.get("runninghub_instance_type") or ""
-                    is_plus_enabled = current_instance_type == "plus"
-                    # Instance type options with i18n
-                    instance_options = [
-                        tr("settings.comfyui.runninghub_instance_24g"),
-                        tr("settings.comfyui.runninghub_instance_48g"),
-                    ]
-                    runninghub_instance_type_display = st.selectbox(
-                        tr("settings.comfyui.runninghub_instance_type"),
-                        options=instance_options,
-                        index=1 if is_plus_enabled else 0,
-                        help=tr("settings.comfyui.runninghub_instance_type_help"),
-                        key="runninghub_instance_type_input"
-                    )
-                    # Convert display value back to actual value
-                    runninghub_48g_enabled = runninghub_instance_type_display == tr("settings.comfyui.runninghub_instance_48g")
 
         # ====================================================================
         # Direct API media providers
@@ -310,9 +263,9 @@ def render_advanced_settings():
         with st.container(border=True):
             st.markdown("**🧩 API 媒体模型**" if zh else "**🧩 API Media Models**")
             st.caption(
-                "用于直连图像/视频模型，不影响上方 LLM 与 ComfyUI/RunningHub 配置。"
+                "用于直连图像/视频模型，不影响上方 LLM 与 ComfyUI 配置。"
                 if zh
-                else "Used for direct image/video model calls. This does not affect the LLM or ComfyUI/RunningHub settings above."
+                else "Used for direct image/video model calls. This does not affect the LLM or ComfyUI settings above."
             )
 
             common_col, proxy_col = st.columns(2)
@@ -443,14 +396,9 @@ def render_advanced_settings():
                         config_manager.set_llm_config(llm_api_key, llm_base_url, llm_model)
                     
                     # Save ComfyUI configuration (optional fields, always save what's provided)
-                    # Convert checkbox to instance type: True -> "plus", False -> ""
-                    instance_type = "plus" if runninghub_48g_enabled else ""
                     config_manager.set_comfyui_config(
                         comfyui_url=comfyui_url if comfyui_url else None,
                         comfyui_api_key=comfyui_api_key if comfyui_api_key else None,
-                        runninghub_api_key=runninghub_api_key if runninghub_api_key else None,
-                        runninghub_concurrent_limit=int(runninghub_concurrent_limit),
-                        runninghub_instance_type=instance_type
                     )
 
                     # Save direct image/video API provider configuration.

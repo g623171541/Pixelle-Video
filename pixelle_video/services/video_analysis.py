@@ -67,7 +67,7 @@ class VideoAnalysisService(ComfyBaseService):
         self,
         video_path: str,
         # Workflow source selection
-        source: Literal['runninghub', 'selfhost'] = 'runninghub',
+        source: Literal['runninghub', 'selfhost'] = 'selfhost',
         workflow: Optional[str] = None,
         # ComfyUI connection (optional overrides)
         comfyui_url: Optional[str] = None,

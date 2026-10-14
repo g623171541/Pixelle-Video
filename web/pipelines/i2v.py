@@ -133,8 +133,6 @@ class ImageToVideoPipelineUI(PipelineUI):
                         )
 
             source_options = []
-            if list_local_media_workflows(pixelle_video, "video", "runninghub", key_prefix="i2v_"):
-                source_options.append("runninghub")
             if list_local_media_workflows(pixelle_video, "video", "selfhost", key_prefix="i2v_"):
                 source_options.append("selfhost")
             if list_api_media_workflows(
@@ -146,7 +144,7 @@ class ImageToVideoPipelineUI(PipelineUI):
                 source_options.append("api")
 
             if not source_options:
-                source_options = ["runninghub"]
+                source_options = ["selfhost"]
                 st.warning(
                     "没有找到可用的图生视频工作流或 API 模型。"
                     if get_language() == "zh_CN"

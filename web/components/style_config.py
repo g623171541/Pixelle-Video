@@ -720,7 +720,7 @@ def render_style_config(pixelle_video):
                 else:
                     st.markdown(tr("style.workflow_how"))
 
-            source_options = ["runninghub", "selfhost", "api"]
+            source_options = ["selfhost", "api"]
             default_source_index = 0
             for index, source in enumerate(source_options):
                 if saved_workflow.startswith(f"{source}/"):
@@ -758,12 +758,12 @@ def render_style_config(pixelle_video):
                 workflows = list_local_media_workflows(pixelle_video, "image", workflow_source)
         
             # Build options for selectbox
-            # Display: "image_flux.json - Runninghub"
-            # Value: "runninghub/image_flux.json"
+            # Display: "image_flux.json - Selfhost"
+            # Value: "selfhost/image_flux.json"
             workflow_options = [wf["display_name"] for wf in workflows]
             workflow_keys = [wf["key"] for wf in workflows]
         
-            # Default to first option (should be runninghub by sorting)
+            # Default to first option
             default_workflow_index = 0
         
             # If user has a saved preference in config, try to match it
@@ -779,7 +779,7 @@ def render_style_config(pixelle_video):
                 help=workflow_select_help(),
             )
         
-            # Get the actual workflow key (e.g., "runninghub/image_flux.json")
+            # Get the actual workflow key (e.g., "selfhost/image_flux.json")
             if workflow_options:
                 workflow_selected_index = workflow_options.index(workflow_display)
                 workflow_key = workflow_keys[workflow_selected_index]
@@ -789,9 +789,9 @@ def render_style_config(pixelle_video):
                 workflow_info = None
                 if workflow_source == "api" and template_media_type == "video":
                     st.warning(
-                        "没有找到已验证的 API 文生视频模型，请先配置 DashScope/Seedance 等提供商，或切换到本地/RunningHub 工作流。"
+                        "没有找到已验证的 API 文生视频模型，请先配置 DashScope/Seedance 等提供商，或切换到本地 ComfyUI 工作流。"
                         if get_language() == "zh_CN"
-                        else "No verified API text-to-video model found. Configure a provider or switch to local/RunningHub workflows."
+                        else "No verified API text-to-video model found. Configure a provider or switch to local ComfyUI workflows."
                     )
                 else:
                     st.warning(
