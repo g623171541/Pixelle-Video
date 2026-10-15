@@ -92,6 +92,19 @@ class FrameProcessor:
                 await self._step_generate_audio(frame, config)
             else:
                 logger.debug(f"  1/4: Using existing audio: {frame.audio_path}")
+
+            if progress_callback and frame.audio_path:
+                progress_callback(ProgressEvent(
+                    event_type="audio_ready",
+                    progress=0.0,
+                    frame_current=frame_num,
+                    frame_total=total_frames,
+                    payload={
+                        "index": frame.index,
+                        "narration": frame.narration or "",
+                        "audio_path": frame.audio_path,
+                    },
+                ))
             
             # Step 2: Generate media (image or video, conditional)
             if needs_generation:
@@ -115,6 +128,20 @@ class FrameProcessor:
                 frame.image_path = None
                 frame.media_type = None
                 logger.debug(f"  2/4: Skipped media generation (not required by template)")
+
+            if progress_callback and (frame.video_path or frame.image_path):
+                progress_callback(ProgressEvent(
+                    event_type="media_ready",
+                    progress=0.0,
+                    frame_current=frame_num,
+                    frame_total=total_frames,
+                    payload={
+                        "index": frame.index,
+                        "narration": frame.narration or "",
+                        "video_path": frame.video_path,
+                        "image_path": frame.image_path,
+                    },
+                ))
         
             # Step 3: Compose frame (add subtitle)
             if progress_callback:

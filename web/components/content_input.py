@@ -19,6 +19,8 @@ import streamlit as st
 from web.i18n import tr
 from web.utils.async_helpers import get_project_version
 
+SCRIPT_TEXT_KEY = "video_script_text"
+
 
 def render_content_input():
     """Render content input section (left column) with batch support"""
@@ -52,11 +54,14 @@ def render_content_input():
             text_height = 120 if mode == "generate" else 200
             text_help = tr("input.text_help_generate") if mode == "generate" else tr("input.text_help_fixed")
             
+            if SCRIPT_TEXT_KEY not in st.session_state:
+                st.session_state[SCRIPT_TEXT_KEY] = ""
             text = st.text_area(
                 tr("input.text"),
                 placeholder=text_placeholder,
                 height=text_height,
-                help=text_help
+                help=text_help,
+                key=SCRIPT_TEXT_KEY,
             )
             
             # Split mode selector (only show in fixed mode)
@@ -99,7 +104,7 @@ def render_content_input():
                 n_scenes = 5
                 st.info(tr("video.frames_fixed_mode_hint"))
             
-            return {
+            content_params = {
                 "batch_mode": False,
                 "mode": mode,
                 "text": text,
@@ -178,13 +183,15 @@ def render_content_input():
             # Config info
             st.info(f"📌 {tr('batch.config_info')}")
             
-            return {
+            content_params = {
                 "batch_mode": True,
                 "topics": topics,
                 "mode": "generate",  # Fixed to AI generate content
                 "title_prefix": title_prefix,
                 "n_scenes": n_scenes,
             }
+
+    return content_params
 
 
 def render_bgm_section(key_prefix=""):

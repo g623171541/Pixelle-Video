@@ -35,7 +35,7 @@ from web.pipelines.api_workflows import (
 )
 from web.components.content_input import render_bgm_section, render_version_info
 from web.utils.async_helpers import run_async
-from web.utils.streamlit_helpers import check_and_warn_selfhost_workflow
+from web.utils.streamlit_helpers import render_selfhost_workflow_help
 from pixelle_video.config import config_manager
 from pixelle_video.models.progress import ProgressEvent
 
@@ -299,14 +299,27 @@ class AssetBasedPipelineUI(PipelineUI):
                 st.session_state.pop("asset_analysis_workflow", None)
 
             if analysis_options:
-                selected_analysis = st.selectbox(
-                    "素材分析工作流/模型" if get_language() == "zh_CN" else "Asset analysis workflow/model",
-                    analysis_options,
-                    index=0,
-                    key="asset_analysis_workflow",
-                    help=workflow_select_help(),
+                analysis_columns = (
+                    st.columns([12, 1], vertical_alignment="bottom")
+                    if source == "selfhost"
+                    else None
                 )
+                with analysis_columns[0] if analysis_columns else st.container():
+                    selected_analysis = st.selectbox(
+                        "素材分析工作流/模型" if get_language() == "zh_CN" else "Asset analysis workflow/model",
+                        analysis_options,
+                        index=0,
+                        key="asset_analysis_workflow",
+                        help=workflow_select_help(),
+                    )
                 selected_analysis_workflow = analysis_workflows[analysis_options.index(selected_analysis)]
+                if analysis_columns:
+                    with analysis_columns[1]:
+                        render_selfhost_workflow_help(
+                            selected_analysis_workflow.get("image_workflow")
+                            or selected_analysis_workflow.get("video_workflow"),
+                            button_key="asset_selfhost_help",
+                        )
             else:
                 st.warning(
                     "当前服务没有可用的素材分析工作流/模型。"
@@ -333,13 +346,6 @@ class AssetBasedPipelineUI(PipelineUI):
                     st.warning(tr("asset_based.source.selfhost_not_configured"))
                 else:
                     st.info(tr("asset_based.source.selfhost_hint"))
-                    # Check and warn for selfhost mode (auto popup if not confirmed)
-                    workflow_for_warning = (
-                        selected_analysis_workflow.get("image_workflow")
-                        or selected_analysis_workflow.get("video_workflow")
-                    )
-                    if workflow_for_warning:
-                        check_and_warn_selfhost_workflow(workflow_for_warning)
 
             api_video_workflow = None
             api_video_params = {}

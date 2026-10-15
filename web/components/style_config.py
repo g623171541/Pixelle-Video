@@ -23,7 +23,7 @@ from loguru import logger
 
 from web.i18n import tr, get_language
 from web.utils.async_helpers import run_async
-from web.utils.streamlit_helpers import check_and_warn_selfhost_workflow
+from web.utils.streamlit_helpers import render_selfhost_workflow_help
 from web.pipelines.api_workflows import (
     list_api_media_workflows,
     list_local_media_workflows,
@@ -150,13 +150,15 @@ def render_style_config(pixelle_video):
             if saved_tts_workflow and saved_tts_workflow in tts_workflow_keys:
                 default_tts_index = tts_workflow_keys.index(saved_tts_workflow)
             
-            tts_workflow_display = st.selectbox(
-                "TTS Workflow",
-                tts_workflow_options if tts_workflow_options else ["No TTS workflows found"],
-                index=default_tts_index,
-                label_visibility="collapsed",
-                key="tts_workflow_select"
-            )
+            tts_select_col, tts_help_col = st.columns([12, 1], vertical_alignment="bottom")
+            with tts_select_col:
+                tts_workflow_display = st.selectbox(
+                    "TTS Workflow",
+                    tts_workflow_options if tts_workflow_options else ["No TTS workflows found"],
+                    index=default_tts_index,
+                    label_visibility="collapsed",
+                    key="tts_workflow_select"
+                )
             
             # Get the actual workflow key
             if tts_workflow_options:
@@ -165,8 +167,8 @@ def render_style_config(pixelle_video):
             else:
                 tts_workflow_key = "selfhost/tts_edge.json"  # fallback
             
-            # Check and warn for selfhost TTS workflow (auto popup if not confirmed)
-            check_and_warn_selfhost_workflow(tts_workflow_key)
+            with tts_help_col:
+                render_selfhost_workflow_help(tts_workflow_key, button_key="tts_selfhost_help")
             
             # Reference audio upload (optional, for voice cloning)
             ref_audio_file = st.file_uploader(
@@ -770,14 +772,20 @@ def render_style_config(pixelle_video):
             if saved_workflow and saved_workflow in workflow_keys:
                 default_workflow_index = workflow_keys.index(saved_workflow)
         
-            workflow_display = st.selectbox(
-                "Workflow" if workflow_source != "api" else ("API 模型" if get_language() == "zh_CN" else "API model"),
-                workflow_options if workflow_options else ["No workflows found"],
-                index=default_workflow_index,
-                label_visibility="visible",
-                key=f"{source_key}_select",
-                help=workflow_select_help(),
+            workflow_columns = (
+                st.columns([12, 1], vertical_alignment="bottom")
+                if workflow_source == "selfhost"
+                else None
             )
+            with workflow_columns[0] if workflow_columns else st.container():
+                workflow_display = st.selectbox(
+                    "Workflow" if workflow_source != "api" else ("API 模型" if get_language() == "zh_CN" else "API model"),
+                    workflow_options if workflow_options else ["No workflows found"],
+                    index=default_workflow_index,
+                    label_visibility="visible",
+                    key=f"{source_key}_select",
+                    help=workflow_select_help(),
+                )
         
             # Get the actual workflow key (e.g., "selfhost/image_flux.json")
             if workflow_options:
@@ -800,9 +808,12 @@ def render_style_config(pixelle_video):
                         else "No workflow is available for the selected source."
                     )
             
-            # Check and warn for selfhost media workflow (auto popup if not confirmed)
-            if workflow_key and not is_api_workflow(workflow_key):
-                check_and_warn_selfhost_workflow(workflow_key)
+            if workflow_columns and workflow_key:
+                with workflow_columns[1]:
+                    render_selfhost_workflow_help(
+                        workflow_key,
+                        button_key=f"{source_key}_selfhost_help",
+                    )
             
             # Display media size info (read-only)
             if template_media_type == "video":

@@ -14,8 +14,9 @@
 Streamlit helper functions
 """
 
+from collections.abc import Callable
+
 import streamlit as st
-import streamlit.components.v1 as components
 
 from web.i18n import tr
 from pixelle_video.config import config_manager
@@ -29,69 +30,56 @@ def safe_rerun():
         st.experimental_rerun()
 
 
-# ============================================================================
-# SelfHost Workflow Warning - Using Native JavaScript Alert
-# ============================================================================
-# Uses native browser alert() to avoid Streamlit's dialog limitations.
-# This is simple, reliable, and works across all browsers.
-
-def check_and_warn_selfhost_workflow(workflow_path: str):
-    """
-    Check if user just switched to a selfhost workflow and show JS alert.
-    
-    Uses native JavaScript alert() which bypasses all Streamlit dialog limitations.
-    The alert is shown immediately when user switches to a selfhost workflow.
-    
-    Args:
-        workflow_path: The workflow path (e.g., "selfhost/image_flux.json")
-    """
-    if not workflow_path:
-        return
-    
-    # Check if this is a transition TO selfhost
-    is_selfhost = workflow_path.startswith("selfhost/")
-    
-    # Only show alert when transitioning TO selfhost
-    if is_selfhost:
-        _show_js_alert(workflow_path)
+# Dialog functions are cached by title so Streamlit can keep the same dialog
+# open across reruns. The title depends on the active language.
+_selfhost_dialogs: dict[str, Callable[[str], None]] = {}
 
 
-def _show_js_alert(workflow_path: str):
-    """
-    Show a native JavaScript alert with selfhost workflow warning.
-    
-    Args:
-        workflow_path: The workflow path to display in the alert
-    """
-    # Get ComfyUI URL from config
+def _render_selfhost_warning(workflow_path: str) -> None:
+    """Render the SelfHost checklist inside an already-open dialog."""
     comfyui_config = config_manager.get_comfyui_config()
     comfyui_url = comfyui_config.get("comfyui_url", "http://localhost:8188")
-    
-    # Build alert message
-    title = tr("selfhost.warning.title")
-    message = tr("selfhost.warning.message", 
-                 comfyui_url=comfyui_url, 
-                 workflow_path=f"workflows/{workflow_path}")
-    hint = tr("selfhost.warning.hint")
-    
-    # Clean up markdown formatting for plain text alert
-    # Remove ** (bold markers) and other markdown
-    message = message.replace("**", "").replace("*", "")
-    hint = hint.replace("**", "").replace("*", "")
-    
-    # Combine into single alert message
-    full_message = f"{title}\\n\\n{message}\\n\\n{hint}"
-    
-    # Escape for JavaScript string
-    full_message = full_message.replace("'", "\\'").replace('"', '\\"')
-    full_message = full_message.replace("\n", "\\n")
-    
-    # Inject JavaScript alert
-    js_code = f"""
-    <script>
-        alert("{full_message}");
-    </script>
+    message = tr(
+        "selfhost.warning.message",
+        comfyui_url=f"[{comfyui_url}]({comfyui_url})",
+        workflow_path=f"workflows/{workflow_path}",
+    )
+    st.markdown(message.replace("\n", "  \n"))
+    st.markdown(tr("selfhost.warning.hint"))
+    if st.button(
+        tr("selfhost.warning.confirm"),
+        key="selfhost_warning_confirm",
+        type="primary",
+    ):
+        st.rerun()
+
+
+def _selfhost_dialog(title: str) -> Callable[[str], None]:
+    dialog = _selfhost_dialogs.get(title)
+    if dialog is None:
+        @st.dialog(title, width="large")
+        def _dialog(workflow_path: str) -> None:
+            _render_selfhost_warning(workflow_path)
+
+        dialog = _dialog
+        _selfhost_dialogs[title] = dialog
+    return dialog
+
+
+def render_selfhost_workflow_help(workflow_path: str | None, *, button_key: str) -> None:
+    """Show a help button that opens the SelfHost checklist.
+
+    The dialog is not opened during page load. It opens only after this button
+    is clicked, and only for local ``selfhost/`` workflows.
     """
-    
-    components.html(js_code, height=0, width=0)
+    if not workflow_path or not workflow_path.startswith("selfhost/"):
+        return
+
+    if st.button(
+        "?",
+        key=button_key,
+        help=tr("selfhost.warning.button_help"),
+        type="tertiary",
+    ):
+        _selfhost_dialog(tr("selfhost.warning.title"))(workflow_path)
 

@@ -21,7 +21,7 @@ from web.pipelines.api_workflows import (
 from web.components.content_input import render_version_info
 from web.utils.async_helpers import run_async
 from web.utils.history_persistence import save_web_generation_history
-from web.utils.streamlit_helpers import check_and_warn_selfhost_workflow
+from web.utils.streamlit_helpers import render_selfhost_workflow_help
 from pixelle_video.config import config_manager
 from pixelle_video.utils.os_util import create_task_output_dir
 
@@ -251,14 +251,20 @@ class ActionTransferPipelineUI(PipelineUI):
             workflow_keys = [wf["key"] for wf in transfer_workflows]               
             default_workflow_index = 0
 
-            workflow_display = st.selectbox(
-                tr("action_transfer.workflow_select"),
-                workflow_options if workflow_options else ["No workflow found"],
-                index=default_workflow_index,
-                label_visibility="visible",
-                key="action_transfer_workflow_select",
-                help=workflow_select_help(),
+            workflow_columns = (
+                st.columns([12, 1], vertical_alignment="bottom")
+                if workflow_source == "selfhost"
+                else None
             )
+            with workflow_columns[0] if workflow_columns else st.container():
+                workflow_display = st.selectbox(
+                    tr("action_transfer.workflow_select"),
+                    workflow_options if workflow_options else ["No workflow found"],
+                    index=default_workflow_index,
+                    label_visibility="visible",
+                    key="action_transfer_workflow_select",
+                    help=workflow_select_help(),
+                )
 
             if workflow_options:
                 workflow_selected_index = workflow_options.index(workflow_display)
@@ -267,10 +273,13 @@ class ActionTransferPipelineUI(PipelineUI):
             else:
                 workflow_key = None
                 workflow_info = None
-            
-            # Check and warn for selfhost workflow (auto popup if not confirmed)
-            if workflow_key and not is_api_workflow(workflow_key):
-                check_and_warn_selfhost_workflow(workflow_key)
+
+            if workflow_columns:
+                with workflow_columns[1]:
+                    render_selfhost_workflow_help(
+                        workflow_key,
+                        button_key="action_transfer_selfhost_help",
+                    )
 
             api_video_params = render_api_video_controls(
                 workflow_info,

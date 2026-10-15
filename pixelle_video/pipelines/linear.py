@@ -104,6 +104,7 @@ class LinearVideoPipeline(BasePipeline):
             # === Phase 2: Content Creation ===
             await self.generate_content(ctx)
             await self.determine_title(ctx)
+            self._report_script(ctx)
             
             # === Phase 3: Visual Planning ===
             await self.plan_visuals(ctx)
@@ -132,6 +133,20 @@ class LinearVideoPipeline(BasePipeline):
         """Step 2: Generate or process script/narrations."""
         pass
         
+    def _report_script(self, ctx: PipelineContext):
+        """Push the generated title and narrations to the UI as soon as they exist."""
+        if not ctx.narrations:
+            return
+        self._report_progress(
+            ctx.progress_callback,
+            "script_ready",
+            0.08,
+            payload={
+                "title": ctx.title or "",
+                "narrations": list(ctx.narrations),
+            },
+        )
+
     async def determine_title(self, ctx: PipelineContext):
         """Step 3: Determine or generate video title."""
         pass

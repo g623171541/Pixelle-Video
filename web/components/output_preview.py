@@ -16,6 +16,7 @@ Output preview components for web UI (right column)
 
 import base64
 import os
+import re
 from pathlib import Path
 
 import streamlit as st
@@ -25,6 +26,117 @@ from web.i18n import tr, get_language
 from web.utils.async_helpers import run_async
 from pixelle_video.models.progress import ProgressEvent
 from pixelle_video.config import config_manager
+
+GENERATED_SCRIPT_KEY = "generated_video_script"
+GENERATED_FRAMES_KEY = "generated_frame_artifacts"
+_FRAME_FILE = re.compile(r"^(\d+)_(audio|video|image)\.(mp3|mp4|png|jpg|jpeg|webp)$", re.IGNORECASE)
+
+
+def _script_body(title: str, narrations: list[str]) -> str:
+    lines = []
+    if title:
+        lines.append(f"**{tr('output.script_title')}:** {title}")
+    for index, narration in enumerate(narrations, start=1):
+        lines.append(f"{index}. {narration}")
+    return "\n\n".join(lines)
+
+
+def _frame_records() -> list[dict]:
+    return list(st.session_state.get(GENERATED_FRAMES_KEY) or [])
+
+
+def _upsert_frame(index: int, narration: str = "", **paths: str) -> None:
+    frames = [item for item in _frame_records() if item.get("index") != index]
+    current = next(
+        (dict(item) for item in _frame_records() if item.get("index") == index),
+        {"index": index, "narration": ""},
+    )
+    if narration:
+        current["narration"] = narration
+    for key, value in paths.items():
+        if value:
+            current[key] = value
+    frames.append(current)
+    frames.sort(key=lambda item: item.get("index", 0))
+    st.session_state[GENERATED_FRAMES_KEY] = frames
+
+
+def _hydrate_latest_frames() -> None:
+    """Show the newest task's saved clips when this session has none yet."""
+    if GENERATED_FRAMES_KEY in st.session_state:
+        return
+    from pixelle_video.utils.os_util import get_output_path
+
+    root = Path(get_output_path())
+    tasks = [
+        path for path in root.iterdir()
+        if path.is_dir() and (path / "frames").is_dir()
+    ] if root.is_dir() else []
+    grouped: dict[int, dict] = {}
+    if tasks:
+        latest = max(tasks, key=lambda path: (path / "frames").stat().st_mtime)
+        for path in (latest / "frames").iterdir():
+            match = _FRAME_FILE.match(path.name)
+            if not match:
+                continue
+            index = int(match.group(1)) - 1
+            kind = match.group(2).lower()
+            item = grouped.setdefault(index, {"index": index, "narration": ""})
+            item[f"{kind}_path"] = str(path)
+    st.session_state[GENERATED_FRAMES_KEY] = [grouped[index] for index in sorted(grouped)]
+
+
+def _preview_frame(frame: dict) -> None:
+    narration = (frame.get("narration") or "").strip()
+    if narration:
+        st.markdown(narration)
+    audio_path = frame.get("audio_path") or ""
+    video_path = frame.get("video_path") or ""
+    image_path = frame.get("image_path") or ""
+    if audio_path and os.path.exists(audio_path):
+        st.audio(audio_path)
+    if video_path and os.path.exists(video_path):
+        st.video(video_path)
+    elif image_path and os.path.exists(image_path):
+        st.image(image_path)
+
+
+def _render_artifacts(slot) -> None:
+    slot.empty()
+    data = st.session_state.get(GENERATED_SCRIPT_KEY) or {}
+    narrations = data.get("narrations") or []
+    frames = [
+        frame for frame in _frame_records()
+        if any(
+            frame.get(key) and os.path.exists(frame[key])
+            for key in ("audio_path", "video_path", "image_path")
+        )
+    ]
+    if not narrations and not frames:
+        return
+    with slot.container():
+        if narrations:
+            with st.expander(tr("output.script"), expanded=False):
+                st.markdown(_script_body(data.get("title") or "", narrations))
+        for frame in frames:
+            with st.expander(tr("output.frame", n=int(frame.get("index", 0)) + 1), expanded=False):
+                _preview_frame(frame)
+
+
+def save_generated_script(title: str, narrations: list[str], slot) -> None:
+    cleaned = [item.strip() for item in narrations if item and item.strip()]
+    if not cleaned:
+        return
+    st.session_state[GENERATED_SCRIPT_KEY] = {
+        "title": (title or "").strip(),
+        "narrations": cleaned,
+    }
+    _render_artifacts(slot)
+
+
+def save_generated_frame(index: int, narration: str, slot, **paths: str) -> None:
+    _upsert_frame(index, narration, **paths)
+    _render_artifacts(slot)
 
 
 def render_output_preview(pixelle_video, video_params):
@@ -62,7 +174,7 @@ def render_single_output(pixelle_video, video_params):
     workflow_key = video_params.get("media_workflow")
     api_video_params = video_params.get("api_video_params")
     prompt_prefix = video_params.get("prompt_prefix", "")
-    
+
     with st.container(border=True):
         st.markdown(f"**{tr('section.video_generation')}**")
         
@@ -71,7 +183,8 @@ def render_single_output(pixelle_video, video_params):
             st.warning(tr("settings.not_configured"))
         
         # Generate Button
-        if st.button(tr("btn.generate"), type="primary", use_container_width=True):
+        generate_clicked = st.button(tr("btn.generate"), type="primary", use_container_width=True)
+        if generate_clicked:
             # Validate system configuration
             if not config_manager.validate():
                 st.error(tr("settings.not_configured"))
@@ -90,7 +203,17 @@ def render_single_output(pixelle_video, video_params):
                     else "Please select a video workflow or API video model before generating."
                 )
                 st.stop()
-            
+
+        _hydrate_latest_frames()
+        artifact_slot = st.empty()
+        _render_artifacts(artifact_slot)
+
+        if generate_clicked:
+            # A new run replaces the previous script and frame previews.
+            st.session_state.pop(GENERATED_SCRIPT_KEY, None)
+            st.session_state[GENERATED_FRAMES_KEY] = []
+            _render_artifacts(artifact_slot)
+
             # Show progress
             progress_bar = st.progress(0)
             status_text = st.empty()
@@ -103,6 +226,18 @@ def render_single_output(pixelle_video, video_params):
                 # Progress callback to update UI
                 def update_progress(event: ProgressEvent):
                     """Update progress bar and status text from ProgressEvent"""
+                    if event.event_type in ("audio_ready", "media_ready"):
+                        payload = event.payload or {}
+                        save_generated_frame(
+                            int(payload.get("index") or 0),
+                            payload.get("narration") or "",
+                            artifact_slot,
+                            audio_path=payload.get("audio_path") or "",
+                            video_path=payload.get("video_path") or "",
+                            image_path=payload.get("image_path") or "",
+                        )
+                        return
+
                     # Translate event to user-facing message
                     if event.event_type == "frame_step":
                         # Frame step: "分镜 3/5 - 步骤 2/4: 生成插图"
@@ -122,6 +257,14 @@ def render_single_output(pixelle_video, video_params):
                             current=event.frame_current,
                             total=event.frame_total
                         )
+                    elif event.event_type == "script_ready":
+                        payload = event.payload or {}
+                        save_generated_script(
+                            payload.get("title") or "",
+                            payload.get("narrations") or [],
+                            artifact_slot,
+                        )
+                        message = tr("progress.script_ready")
                     else:
                         # Simple events: use i18n key directly
                         message = tr(f"progress.{event.event_type}")
@@ -166,6 +309,16 @@ def render_single_output(pixelle_video, video_params):
                     video_params["template_params"] = custom_values_for_video
                 
                 result = run_async(pixelle_video.generate_video(**video_params))
+
+                for frame in result.storyboard.frames:
+                    save_generated_frame(
+                        frame.index,
+                        frame.narration or "",
+                        artifact_slot,
+                        audio_path=frame.audio_path or "",
+                        video_path=frame.video_path or "",
+                        image_path=frame.image_path or "",
+                    )
                 
                 # Calculate total generation time
                 total_generation_time = time.time() - start_time

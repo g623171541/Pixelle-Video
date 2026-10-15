@@ -146,7 +146,7 @@
   "47": {
     "inputs": {
       "clip_name1": "clip_l.safetensors",
-      "clip_name2": "t5xxl_fp8_e4m3fn.safetensors",
+      "clip_name2": "t5xxl_fp16.safetensors",
       "type": "flux",
       "device": "default"
     },

@@ -28,6 +28,21 @@ from loguru import logger
 T = TypeVar("T", bound=BaseModel)
 
 
+def _disable_deepseek_thinking(model: str, base_url: str, params: dict) -> dict:
+    """Ask DeepSeek V4 models for a direct answer instead of a thinking trace."""
+    url = (base_url or "").lower()
+    name = (model or "").lower()
+    if "deepseek" not in url and not name.startswith("deepseek"):
+        return params
+    merged = dict(params)
+    extra = dict(merged.get("extra_body") or {})
+    thinking = dict(extra.get("thinking") or {})
+    thinking["type"] = "disabled"
+    extra["thinking"] = thinking
+    merged["extra_body"] = extra
+    return merged
+
+
 class LLMService:
     """
     LLM (Large Language Model) service
@@ -185,12 +200,17 @@ class LLMService:
                 )
             else:
                 # Standard text output mode
+                request = _disable_deepseek_thinking(
+                    final_model,
+                    str(client.base_url),
+                    kwargs,
+                )
                 response = await client.chat.completions.create(
                     model=final_model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=temperature,
                     max_tokens=max_tokens,
-                    **kwargs
+                    **request
                 )
                 
                 raw_content = response.choices[0].message.content
@@ -240,12 +260,13 @@ class LLMService:
         enhanced_prompt = f"{prompt}\n\n{json_schema_instruction}"
         
         # Call LLM with enhanced prompt
+        request = _disable_deepseek_thinking(model, str(client.base_url), kwargs)
         response = await client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": enhanced_prompt}],
             temperature=temperature,
             max_tokens=max_tokens,
-            **kwargs
+            **request
         )
         raw_content = response.choices[0].message.content
         content = raw_content if isinstance(raw_content, str) else ""

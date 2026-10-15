@@ -150,6 +150,11 @@
     "status.connection_failed": "❌ Connection failed",
     "progress.generating_title": "Generating title...",
     "progress.generating_narrations": "Generating narrations...",
+    "progress.script_ready": "Script ready",
+    "output.script": "Video script",
+    "output.script_title": "Title",
+    "output.voiceover": "Voiceover",
+    "output.frame": "Scene {n}",
     "progress.splitting_script": "Splitting script...",
     "progress.generating_image_prompts": "Generating image prompts...",
     "progress.generating_video_prompts": "Generating video prompts...",
@@ -502,6 +507,7 @@
     "selfhost.warning.title": "You have selected a SelfHost (local) workflow. Please confirm the following:",
     "selfhost.warning.message": "1. First, **load and run** `{workflow_path}` workflow in your ComfyUI environment ({comfyui_url})\n2. Ensure the workflow **runs successfully** without missing nodes or models\n3. After the workflow is verified, return to this project to use it",
     "selfhost.warning.hint": "⚠️ If you haven't verified this workflow in ComfyUI, subsequent runs **will definitely fail** (usually 400 error)! Do not skip this step.",
-    "selfhost.warning.confirm": "I understand, continue"
+    "selfhost.warning.confirm": "I understand, continue",
+    "selfhost.warning.button_help": "SelfHost workflow checklist"
   }
 }
